@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de Ta-Te-Ti</title>
+  <style>
+    /* --- CONFIGURACIÓN GENERAL Y CSS --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Tablero de Puntuación */
+    .scoreboard {
+      display: flex;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 12px 24px;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .score-box {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .score-box span {
+      display: block;
+      font-size: 1.5rem;
+      color: #f43f5e;
+    }
+
+    .score-box:first-child span {
+      color: #38bdf8;
+    }
+
+    /* Estado del Juego */
+    .status {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      height: 30px;
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    /* Tablero del Juego */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    .cell {
+      background-color: #334155;
+      border-radius: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 3rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05),
+                  0 4px 8px rgba(0, 0, 0, 0.3);
+      user-select: none;
+    }
+
+    .cell:hover {
+      background-color: #475569;
+      transform: translateY(-2px);
+    }
+
+    /* Colores para las X y las O */
+    .cell.x {
+      color: #38bdf8;
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    }
+
+    .cell.o {
+      color: #f43f5e;
+      text-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+    }
+
+    /* Resaltado de Celdas Ganadoras */
+    .cell.winner {
+      background-color: #10b981;
+      color: #ffffff;
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.05); }
+    }
+
+    /* Botón de Reinicio */
+    .reset-btn {
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .reset-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.6);
+    }
+
+    .reset-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Responsivo para celulares */
+    @media (max-width: 400px) {
+      .board {
+        grid-template-columns: repeat(3, 80px);
+        grid-template-rows: repeat(3, 80px);
+        gap: 8px;
+      }
+      .cell {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TA-TE-TI</h1>
+
+  <div class="scoreboard">
+    <div class="score-box">
+      Jugador (X)
+      <span id="score-x">0</span>
+    </div>
+    <div class="score-box">
+      Empates
+      <span id="score-ties" style="color: #cbd5e1;">0</span>
+    </div>
+    <div class="score-box">
+      Jugador (O)
+      <span id="score-o">0</span>
+    </div>
+  </div>
+
+  <div class="status" id="status">Turno de: X</div>
+
+  <div class="board" id="board">
+    <div class="cell" data-index="0"></div>
+    <div class="cell" data-index="1"></div>
+    <div class="cell" data-index="2"></div>
+    <div class="cell" data-index="3"></div>
+    <div class="cell" data-index="4"></div>
+    <div class="cell" data-index="5"></div>
+    <div class="cell" data-index="6"></div>
+    <div class="cell" data-index="7"></div>
+    <div class="cell" data-index="8"></div>
+  </div>
+
+  <button class="reset-btn" id="reset-btn">Reiniciar Juego</button>
+
+  <script>
+    /* --- LÓGICA JAVASCRIPT --- */
+    const boardElement = document.getElementById('board');
+    const cells = document.querySelectorAll('.cell');
+    const statusElement = document.getElementById('status');
+    const resetBtn = document.getElementById('reset-btn');
+    const scoreXElement = document.getElementById('score-x');
+    const scoreOElement = document.getElementById('score-o');
+    const scoreTiesElement = document.getElementById('score-ties');
+
+    let currentPlayer = 'X';
+    let gameState = ["", "", "", "", "", "", "", "", ""];
+    let gameActive = true;
+    let scores = { X: 0, O: 0, ties: 0 };
+
+    const winningConditions = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columnas
+      [0, 4, 8], [2, 4, 6]             // Diagonales
+    ];
+
+    function handleCellClick(event) {
+      const clickedCell = event.target;
+      const clickedIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+      // Si la casilla ya está ocupada o el juego terminó, ignoramos el click
+      if (gameState[clickedIndex] !== "" || !gameActive) {
+        return;
+      }
+
+      // Actualizar estado del tablero
+      gameState[clickedIndex] = currentPlayer;
+      clickedCell.textContent = currentPlayer;
+      clickedCell.classList.add(currentPlayer.toLowerCase());
+
+      checkResult();
+    }
+
+    function checkResult() {
+      let roundWon = false;
+      let winningCombo = [];
+
+      for (let i = 0; i < winningConditions.length; i++) {
+        const [a, b, c] = winningConditions[i];
+        if (gameState[a] === "" || gameState[b] === "" || gameState[c] === "") {
+          continue;
+        }
+        if (gameState[a] === gameState[b] && gameState[b] === gameState[c]) {
+          roundWon = true;
+          winningCombo = [a, b, c];
+          break;
+        }
+      }
+
+      if (roundWon) {
+        statusElement.textContent = `¡El jugador ${currentPlayer} ha ganado! 🎉`;
+        gameActive = false;
+        highlightWinningCells(winningCombo);
+        updateScore(currentPlayer);
+        return;
+      }
+
+      // Si no hay casillas vacías, es un empate
+      if (!gameState.includes("")) {
+        statusElement.textContent = '¡Empate! 🤝';
+        gameActive = false;
+        updateScore('ties');
+        return;
+      }
+
+      // Cambiar de turno
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      statusElement.textContent = `Turno de: ${currentPlayer}`;
+    }
+
+    function highlightWinningCells(combo) {
+      combo.forEach(index => {
+        cells[index].classList.add('winner');
+      });
+    }
+
+    function updateScore(winner) {
+      if (winner === 'X') {
+        scores.X++;
+        scoreXElement.textContent = scores.X;
+      } else if (winner === 'O') {
+        scores.O++;
+        scoreOElement.textContent = scores.O;
+      } else {
+        scores.ties++;
+        scoreTiesElement.textContent = scores.ties;
+      }
+    }
+
+    function resetGame() {
+      currentPlayer = 'X';
+      gameState = ["", "", "", "", "", "", "", "", ""];
+      gameActive = true;
+      statusElement.textContent = `Turno de: ${currentPlayer}`;
+
+      cells.forEach(cell => {
+        cell.textContent = "";
+        cell.classList.remove('x', 'o', 'winner');
+      });
+    }
+
+    // Event Listeners
+    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+    resetBtn.addEventListener('click', resetGame);
+  </script>
+</body>
+</html>
